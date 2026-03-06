@@ -15,8 +15,10 @@ import {
   Zap,
   Image as ImageIcon,
   CloudSun,
+  Sunrise,
+  Sunset,
+  CloudFog,
   Wind,
-  Droplets,
   Navigation,
 } from 'lucide-react';
 import { OverlayState, SocketMessage, AlertData } from './types';
@@ -373,6 +375,9 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
     humidity?: number;
     windSpeed?: number;
     windDegree?: number;
+    aqi?: number;
+    sunrise?: string;
+    sunset?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -395,28 +400,27 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
         if (geoData.results && geoData.results.length > 0) {
           const { latitude, longitude } = geoData.results[0];
           const weatherRes = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m`,
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&daily=sunrise,sunset&timezone=auto`,
           );
           const weatherJson = await weatherRes.json();
 
+          const aqiRes = await fetch(
+            `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}&current=european_aqi`,
+          );
+          const aqiJson = await aqiRes.json();
+
           if (weatherJson.current) {
             const current = weatherJson.current;
+            const daily = weatherJson.daily;
             setWeatherData({
               temp: Math.round(current.temperature_2m ?? 0),
               code: current.weather_code ?? 0,
               humidity: current.relative_humidity_2m,
               windSpeed: current.wind_speed_10m ?? 0,
               windDegree: current.wind_direction_10m ?? 0,
-            });
-          } else if (weatherJson.current_weather) {
-            // Fallback for older API responses or unexpected structures
-            const cw = weatherJson.current_weather;
-            setWeatherData({
-              temp: Math.round(cw.temperature),
-              code: cw.weathercode,
-              humidity: undefined, // current_weather doesn't have humidity
-              windSpeed: cw.windspeed,
-              windDegree: cw.winddirection,
+              aqi: aqiJson?.current?.european_aqi,
+              sunrise: daily?.sunrise?.[0]?.split('T')[1],
+              sunset: daily?.sunset?.[0]?.split('T')[1],
             });
           }
         }
@@ -441,6 +445,22 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
     if (code <= 82) return '🌦️';
     if (code <= 99) return '⛈️';
     return '🌡️';
+  };
+
+  const getWindDirection = (degree: number | undefined) => {
+    if (degree === undefined) return '';
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return directions[Math.round(degree / 45) % 8];
+  };
+
+  const getAQILabel = (index: number | undefined) => {
+    if (index === undefined) return '';
+    if (index <= 1) return 'Good';
+    if (index <= 2) return 'Fair';
+    if (index <= 3) return 'Moderate';
+    if (index <= 4) return 'Poor';
+    if (index <= 5) return 'Very Poor';
+    return 'Hazardous';
   };
 
   return (
@@ -492,7 +512,11 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
           >
             <div className="live-badge">LIVE</div>
             <div className="time-display">
-              {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              {time.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              })}
             </div>
           </motion.div>
         )}
@@ -504,45 +528,75 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
           <motion.div
             initial={{ x: -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="overlay-widget weather-widget broadcast"
+            className="overlay-widget weather-widget modern-minimal"
           >
-            <div className="broadcast-header">CURRENT CONDITIONS</div>
-            <div className="broadcast-body">
-              <div className="location-info">
-                <span className="location">
-                  {state.widgets.weather.location}
-                  {state.widgets.weather.location.toLowerCase().includes('yerevan') && ' 🇦🇲'}
-                </span>
-              </div>
-              <div className="main-info">
-                <span className="weather-icon">{getWeatherIcon(weatherData.code)}</span>
-                <span className="temp">{weatherData.temp}°</span>
-              </div>
-              <div className="broadcast-metrics">
-                {weatherData.humidity !== undefined && (
-                  <div className="metric-box">
-                    <span className="label">HUMIDITY</span>
-                    <span className="value">{weatherData.humidity}%</span>
+            <div className="weather-header">
+              <span className="weather-icon">{getWeatherIcon(weatherData.code)}</span>
+              <span className="temp">
+                {weatherData.temp > 0 ? `+${weatherData.temp}` : `${weatherData.temp}`}°
+              </span>
+            </div>
+
+            <div className="weather-details-list">
+              <div className="weather-detail-item">
+                <div className="icon-box">
+                  <Wind size={24} strokeWidth={1.5} />
+                </div>
+                <div className="content">
+                  <div className="label">Wind</div>
+                  <div className="value">
+                    {weatherData.windSpeed !== undefined ? Math.round(weatherData.windSpeed) : 0}
+                    {' m/s '}
+                    {getWindDirection(weatherData.windDegree)}
+                    {weatherData.windDegree !== undefined && (
+                      <Navigation
+                        size={16}
+                        style={{
+                          marginLeft: '8px',
+                          display: 'inline-block',
+                          transform: `rotate(${weatherData.windDegree}deg)`,
+                          verticalAlign: 'middle',
+                          opacity: 0.8,
+                        }}
+                      />
+                    )}
                   </div>
-                )}
-                {weatherData.windSpeed !== undefined && (
-                  <div className="metric-box">
-                    <span className="label">WIND</span>
-                    <span className="value">
-                      {Math.round(weatherData.windSpeed)}<small>km/h</small>
-                      {weatherData.windDegree !== undefined && (
-                        <Navigation
-                          size={12}
-                          style={{
-                            marginLeft: '4px',
-                            transform: `rotate(${weatherData.windDegree}deg)`
-                          }}
-                        />
-                      )}
-                    </span>
-                  </div>
-                )}
+                </div>
               </div>
+
+              <div className="weather-detail-item">
+                <div className="icon-box">
+                  <CloudFog size={24} strokeWidth={1.5} />
+                </div>
+                <div className="content">
+                  <div className="label">Air Quality</div>
+                  <div className="value">{getAQILabel(weatherData.aqi)}</div>
+                </div>
+              </div>
+
+              {weatherData.sunrise && (
+                <div className="weather-detail-item">
+                  <div className="icon-box">
+                    <Sunrise size={24} strokeWidth={1.5} />
+                  </div>
+                  <div className="content">
+                    <div className="label">Sunrise</div>
+                    <div className="value">{weatherData.sunrise}</div>
+                  </div>
+                </div>
+              )}
+
+              {weatherData.sunset && (
+                <div className="weather-detail-item">
+                  <div className="icon-box">
+                    <Sunset size={24} strokeWidth={1.5} />
+                  </div>
+                  <div className="content">
+                    <div className="label">Sunset</div>
+                    <div className="value">{weatherData.sunset}</div>
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
