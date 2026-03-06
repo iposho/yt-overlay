@@ -29,6 +29,8 @@ async function startServer() {
       logo: {
         enabled: true,
         url: 'https://vwqbifrslmaxymferwyr.supabase.co/storage/v1/object/public/images/1772712401766-clb9i6jetn.png',
+        maxWidth: '180px',
+        opacity: 1,
       },
       goal: {
         enabled: false,
@@ -46,6 +48,10 @@ async function startServer() {
       weather: {
         enabled: true,
         location: 'Yerevan',
+      },
+      debug: {
+        enabled: false,
+        backgroundUrl: 'https://images.unsplash.com/photo-1518173946687-a4c8a98039f5?auto=format&fit=crop&w=1920&q=80',
       },
       alerts: {
         lastSubscriber: 'User123',

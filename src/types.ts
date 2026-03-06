@@ -15,6 +15,8 @@ export interface OverlayState {
     logo: {
       enabled: boolean;
       url: string;
+      maxWidth: string;
+      opacity: number;
     };
     goal: {
       enabled: boolean;
@@ -32,6 +34,10 @@ export interface OverlayState {
     weather: {
       enabled: boolean;
       location: string;
+    };
+    debug: {
+      enabled: boolean;
+      backgroundUrl: string;
     };
     alerts: {
       lastSubscriber: string;

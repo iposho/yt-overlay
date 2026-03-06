@@ -9,11 +9,34 @@ $emerald: #10b981;
 $amber: #f59e0b;
 $blue: #3b82f6;
 $font-sans: 'Inter', sans-serif;
-$font-mono: 'JetBrains Mono', monospace;
+$font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 $font-serif: 'Playfair Display', serif;
 $radius-xl: 1rem;
 $radius-2xl: 1.5rem;
+$accent: #06b6d4;
 $transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.debug-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  z-index: -1;
+  pointer-events: none;
+}
 
 // --- Global ---
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap');
@@ -479,7 +502,7 @@ body {
   box-shadow: none;
   font-family: $font-sans;
   color: #ffffff;
-  gap: 2rem;
+  // gap: 2rem;
 
   .weather-header {
     display: flex;
@@ -499,41 +522,76 @@ body {
     }
   }
 
-  .weather-details-list {
+  .weather-info-box {
+    // margin-top: 1rem;
+    // padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    height: 64px; // Fixed height to prevent jumping
     display: flex;
     flex-direction: column;
-    gap: .5rem;
-  }
+    justify-content: center;
 
-  .weather-detail-item {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-
-    .icon-box {
-      color: rgba(255, 255, 255, 0.8);
-      width: 32px;
+    .info-block {
       display: flex;
-      justify-content: center;
-    }
+      align-items: center;
+      gap: 1rem;
 
-    .content {
-      display: flex;
-      flex-direction: column;
-      gap: 0.125rem;
-
-      .label {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: rgba(255, 255, 255, 0.4);
-        text-transform: none;
-        letter-spacing: normal;
+      .info-icon {
+        color: white;
+        opacity: 0.9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
       }
 
-      .value {
-        font-size: 1.5rem;
-        font-weight: 600;
-        white-space: nowrap;
+      .info-content {
+        display: flex;
+        flex-direction: column;
+
+        .info-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.4);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .info-value {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: white;
+          font-family: $font-mono;
+        }
+      }
+    }
+
+    .info-dots {
+      position: absolute;
+      bottom: -15px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      display: none;
+
+      .dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+
+        &.active {
+          background: $accent;
+          transform: scale(1.5);
+          box-shadow: 0 0 8px $accent;
+        }
       }
     }
   }

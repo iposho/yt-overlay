@@ -13,13 +13,11 @@ import {
   Twitter,
   Instagram,
   Zap,
-  Image as ImageIcon,
+  ImageIcon,
   CloudSun,
+  Wind,
   Sunrise,
   Sunset,
-  CloudFog,
-  Wind,
-  Navigation,
 } from 'lucide-react';
 import { OverlayState, SocketMessage, AlertData } from './types';
 
@@ -134,6 +132,34 @@ const Dashboard = ({
                       </div>
                     </div>
                     <div className="input-group">
+                      <label>Max Width (px/%)</label>
+                      <div className="input-wrapper no-icon">
+                        <input
+                          type="text"
+                          value={state.widgets.logo.maxWidth}
+                          onChange={(e) => updateWidget('logo', { maxWidth: e.target.value })}
+                          placeholder="200px"
+                        />
+                      </div>
+                    </div>
+                    <div className="input-group">
+                      <label>Opacity ({Math.round(state.widgets.logo.opacity * 100)}%)</label>
+                      <div className="input-wrapper no-icon">
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={state.widgets.logo.opacity}
+                          onChange={(e) =>
+                            updateWidget('logo', {
+                              opacity: parseFloat(e.target.value),
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="input-group">
                       <div className="toggle-row">
                         <span>Show Logo</span>
                         <button
@@ -148,6 +174,36 @@ const Dashboard = ({
                     </div>
                   </div>
                 </section>
+
+                {window.location.hostname === 'localhost' && (
+                  <section className="content-section debug-section">
+                    <h2 style={{ color: '#ef4444' }}>
+                      <Settings size={20} /> Debug Mode (Local Only)
+                    </h2>
+                    <div className="toggle-row">
+                      <span>Show Debug Background</span>
+                      <button
+                        onClick={() =>
+                          updateWidget('debug', { enabled: !state.widgets.debug.enabled })
+                        }
+                        className={`toggle-btn ${state.widgets.debug.enabled ? 'on' : 'off'}`}
+                      >
+                        <div className="knob" />
+                      </button>
+                    </div>
+                    <div className="input-group">
+                      <label>Background Image URL</label>
+                      <div className="input-wrapper">
+                        <ImageIcon className="icon" size={16} />
+                        <input
+                          type="text"
+                          value={state.widgets.debug.backgroundUrl}
+                          onChange={(e) => updateWidget('debug', { backgroundUrl: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </section>
+                )}
 
                 <section className="content-section">
                   <h2>
@@ -365,6 +421,120 @@ const Dashboard = ({
   );
 };
 
+// --- Weather Helpers ---
+
+const getWeatherIcon = (code: number) => {
+  if (code === 0) return '☀️';
+  if (code <= 3) return '⛅';
+  if (code <= 48) return '🌫️';
+  if (code <= 67) return '🌧️';
+  if (code <= 77) return '❄️';
+  if (code <= 82) return '🌦️';
+  if (code <= 99) return '⛈️';
+  return '🌡️';
+};
+
+const getWindDirection = (degree: number | undefined) => {
+  if (degree === undefined) return '';
+  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  return directions[Math.round(degree / 45) % 8];
+};
+
+const getAqiText = (index: number | undefined) => {
+  if (index === undefined) return '';
+  const labels = ['Good', 'Fair', 'Moderate', 'Poor', 'Very Poor', 'Hazardous'];
+  return labels[index] || 'Hazardous';
+};
+
+const WeatherView = ({
+  weatherData,
+  getWeatherIcon,
+}: {
+  weatherData: {
+    temp?: number;
+    code?: number;
+    windSpeed?: number;
+    windDegree?: number;
+    aqi?: number;
+    sunrise?: string;
+    sunset?: string;
+  };
+  getWeatherIcon: (code: number) => React.ReactNode;
+}) => {
+  const [activeTab, setActiveTab] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveTab((prev) => (prev + 1) % 4);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const weatherTabs = [
+    {
+      label: 'Wind',
+      icon: <Wind size={20} />,
+      value: `${weatherData.windSpeed !== undefined ? Math.round(weatherData.windSpeed) : 0} m/s ${getWindDirection(weatherData.windDegree)}`,
+    },
+    {
+      label: 'Air Quality',
+      icon: <Wind size={20} className="rotate-90" />,
+      value: getAqiText(weatherData.aqi),
+    },
+    {
+      label: 'Sunrise',
+      icon: <Sunrise size={20} />,
+      value: weatherData.sunrise,
+    },
+    {
+      label: 'Sunset',
+      icon: <Sunset size={20} />,
+      value: weatherData.sunset,
+    },
+  ];
+
+  return (
+    <motion.div
+      initial={{ x: -100, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: -100, opacity: 0 }}
+      className="overlay-widget weather-widget modern-minimal"
+    >
+      <div className="weather-header">
+        <span className="weather-icon">{getWeatherIcon(weatherData.code || 0)}</span>
+        <span className="temp">
+          {(weatherData.temp || 0) > 0 ? `+${weatherData.temp || 0}` : `${weatherData.temp || 0}`}°
+        </span>
+      </div>
+
+      <div className="weather-info-box">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -20, opacity: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="info-block"
+          >
+            <div className="info-icon">{weatherTabs[activeTab].icon}</div>
+            <div className="info-content">
+              <span className="info-label">{weatherTabs[activeTab].label}</span>
+              <span className="info-value">{weatherTabs[activeTab].value}</span>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        <div className="info-dots">
+          {weatherTabs.map((_, i) => (
+            <div key={i} className={`dot ${activeTab === i ? 'active' : ''}`} />
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 // --- Overlay Components ---
 
 const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | null }) => {
@@ -435,36 +605,16 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
   }, [state.widgets.weather.location, state.widgets.weather.enabled]);
 
   const progress = (state.widgets.goal.current / state.widgets.goal.target) * 100;
-
-  const getWeatherIcon = (code: number) => {
-    if (code === 0) return '☀️';
-    if (code <= 3) return '⛅';
-    if (code <= 48) return '🌫️';
-    if (code <= 67) return '🌧️';
-    if (code <= 77) return '❄️';
-    if (code <= 82) return '🌦️';
-    if (code <= 99) return '⛈️';
-    return '🌡️';
-  };
-
-  const getWindDirection = (degree: number | undefined) => {
-    if (degree === undefined) return '';
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    return directions[Math.round(degree / 45) % 8];
-  };
-
-  const getAQILabel = (index: number | undefined) => {
-    if (index === undefined) return '';
-    if (index <= 1) return 'Good';
-    if (index <= 2) return 'Fair';
-    if (index <= 3) return 'Moderate';
-    if (index <= 4) return 'Poor';
-    if (index <= 5) return 'Very Poor';
-    return 'Hazardous';
-  };
-
   return (
     <div className="overlay-container">
+      {/* Debug Background */}
+      {state.widgets.debug?.enabled && (
+        <div
+          className="debug-background"
+          style={{ backgroundImage: `url(${state.widgets.debug.backgroundUrl})` }}
+        />
+      )}
+
       {/* Logo */}
       <AnimatePresence>
         {state.widgets.logo.enabled && (
@@ -473,7 +623,15 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
             animate={{ scale: 1, opacity: 1 }}
             className="logo-widget"
           >
-            <img src={state.widgets.logo.url} alt="Logo" referrerPolicy="no-referrer" />
+            <img
+              src={state.widgets.logo.url}
+              alt="Logo"
+              referrerPolicy="no-referrer"
+              style={{
+                maxWidth: state.widgets.logo.maxWidth || '180px',
+                opacity: state.widgets.logo.opacity ?? 1,
+              }}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -525,83 +683,9 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
       {/* Weather */}
       <AnimatePresence>
         {state.widgets.weather.enabled && weatherData && (
-          <motion.div
-            initial={{ x: -100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="overlay-widget weather-widget modern-minimal"
-          >
-            <div className="weather-header">
-              <span className="weather-icon">{getWeatherIcon(weatherData.code)}</span>
-              <span className="temp">
-                {weatherData.temp > 0 ? `+${weatherData.temp}` : `${weatherData.temp}`}°
-              </span>
-            </div>
-
-            <div className="weather-details-list">
-              <div className="weather-detail-item">
-                <div className="icon-box">
-                  <Wind size={24} strokeWidth={1.5} />
-                </div>
-                <div className="content">
-                  <div className="label">Wind</div>
-                  <div className="value">
-                    {weatherData.windSpeed !== undefined ? Math.round(weatherData.windSpeed) : 0}
-                    {' m/s '}
-                    {getWindDirection(weatherData.windDegree)}
-                    {weatherData.windDegree !== undefined && (
-                      <Navigation
-                        size={16}
-                        style={{
-                          marginLeft: '8px',
-                          display: 'inline-block',
-                          transform: `rotate(${weatherData.windDegree}deg)`,
-                          verticalAlign: 'middle',
-                          opacity: 0.8,
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="weather-detail-item">
-                <div className="icon-box">
-                  <CloudFog size={24} strokeWidth={1.5} />
-                </div>
-                <div className="content">
-                  <div className="label">Air Quality</div>
-                  <div className="value">{getAQILabel(weatherData.aqi)}</div>
-                </div>
-              </div>
-
-              {weatherData.sunrise && (
-                <div className="weather-detail-item">
-                  <div className="icon-box">
-                    <Sunrise size={24} strokeWidth={1.5} />
-                  </div>
-                  <div className="content">
-                    <div className="label">Sunrise</div>
-                    <div className="value">{weatherData.sunrise}</div>
-                  </div>
-                </div>
-              )}
-
-              {weatherData.sunset && (
-                <div className="weather-detail-item">
-                  <div className="icon-box">
-                    <Sunset size={24} strokeWidth={1.5} />
-                  </div>
-                  <div className="content">
-                    <div className="label">Sunset</div>
-                    <div className="value">{weatherData.sunset}</div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
+          <WeatherView weatherData={weatherData} getWeatherIcon={getWeatherIcon} />
         )}
       </AnimatePresence>
-
       {/* Goal */}
       <AnimatePresence>
         {state.widgets.goal.enabled && (
