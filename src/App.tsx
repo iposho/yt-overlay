@@ -18,8 +18,45 @@ import {
   Wind,
   Sunrise,
   Sunset,
+  Sun,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  CloudFog,
+  CloudDrizzle,
+  Snowflake,
+  Droplets,
 } from 'lucide-react';
 import { OverlayState, SocketMessage, AlertData } from './types';
+
+// --- Brand Logo Component ---
+const BrandLogo = ({
+  logoUrl,
+  maxWidth,
+  opacity = 1,
+  showText = true,
+  fontSize = 2.25,
+}: {
+  logoUrl: string;
+  maxWidth: string;
+  opacity?: number;
+  showText?: boolean;
+  fontSize?: number;
+}) => (
+  <div className="brand-logo" style={{ opacity }}>
+    <div className="bird-icon" style={{ maxWidth }}>
+      <img src={logoUrl} alt="Logo" referrerPolicy="no-referrer" />
+    </div>
+    {showText && (
+      <div className="brand-text" style={{ fontSize: `${fontSize}rem` }}>
+        <span>KENTRON</span>
+        <span>BIRD</span>
+        <span>WATCH TV</span>
+      </div>
+    )}
+  </div>
+);
 
 // --- Dashboard Components ---
 
@@ -170,6 +207,38 @@ const Dashboard = ({
                         >
                           <div className="knob" />
                         </button>
+                      </div>
+                    </div>
+                    <div className="input-group">
+                      <div className="toggle-row">
+                        <span>Show Logo Text</span>
+                        <button
+                          onClick={() =>
+                            updateWidget('logoText', { enabled: !state.widgets.logoText?.enabled })
+                          }
+                          className={`toggle-btn ${state.widgets.logoText?.enabled ? 'on' : 'off'}`}
+                        >
+                          <div className="knob" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="input-group">
+                      <label>
+                        Text Size ({((state.widgets.logoText?.fontSize ?? 1.75) * 100).toFixed(0)}%)
+                      </label>
+                      <div className="input-wrapper no-icon">
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="4"
+                          step="0.05"
+                          value={state.widgets.logoText?.fontSize ?? 1.75}
+                          onChange={(e) =>
+                            updateWidget('logoText', {
+                              fontSize: parseFloat(e.target.value),
+                            })
+                          }
+                        />
                       </div>
                     </div>
                   </div>
@@ -423,15 +492,115 @@ const Dashboard = ({
 
 // --- Weather Helpers ---
 
+const AnimatedWeatherIcon = ({ code }: { code: number }) => {
+  // Clear sky
+  if (code === 0) {
+    return (
+      <div className="weather-icon-animated sunny">
+        <Sun className="sun-icon" />
+        <div className="sun-rays">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="ray" style={{ '--i': i } as React.CSSProperties} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Partly cloudy
+  if (code <= 3) {
+    return (
+      <div className="weather-icon-animated partly-cloudy">
+        <Sun className="sun-icon small" />
+        <Cloud className="cloud-icon" />
+      </div>
+    );
+  }
+
+  // Fog
+  if (code <= 48) {
+    return (
+      <div className="weather-icon-animated foggy">
+        <CloudFog className="fog-icon" />
+        <div className="fog-lines">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="fog-line" style={{ '--i': i } as React.CSSProperties} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Drizzle & Rain
+  if (code <= 67) {
+    const isHeavy = code >= 63;
+    return (
+      <div className={`weather-icon-animated rainy ${isHeavy ? 'heavy' : ''}`}>
+        {isHeavy ? <CloudRain className="cloud-icon" /> : <CloudDrizzle className="cloud-icon" />}
+        <div className="rain-drops">
+          {[...Array(isHeavy ? 6 : 4)].map((_, i) => (
+            <Droplets key={i} className="drop" style={{ '--i': i } as React.CSSProperties} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Snow
+  if (code <= 77) {
+    return (
+      <div className="weather-icon-animated snowy">
+        <CloudSnow className="cloud-icon" />
+        <div className="snowflakes">
+          {[...Array(5)].map((_, i) => (
+            <Snowflake key={i} className="flake" style={{ '--i': i } as React.CSSProperties} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Rain showers
+  if (code <= 86) {
+    return (
+      <div className="weather-icon-animated showers">
+        <CloudRain className="cloud-icon" />
+        <div className="rain-drops intense">
+          {[...Array(5)].map((_, i) => (
+            <Droplets key={i} className="drop" style={{ '--i': i } as React.CSSProperties} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Thunderstorm
+  if (code <= 99) {
+    return (
+      <div className="weather-icon-animated stormy">
+        <CloudLightning className="cloud-icon" />
+        <div className="lightning-bolt">
+          <Zap className="bolt" />
+        </div>
+        <div className="rain-drops">
+          {[...Array(4)].map((_, i) => (
+            <Droplets key={i} className="drop" style={{ '--i': i } as React.CSSProperties} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Default
+  return (
+    <div className="weather-icon-animated default">
+      <Cloud className="cloud-icon" />
+    </div>
+  );
+};
+
 const getWeatherIcon = (code: number) => {
-  if (code === 0) return '☀️';
-  if (code <= 3) return '⛅';
-  if (code <= 48) return '🌫️';
-  if (code <= 67) return '🌧️';
-  if (code <= 77) return '❄️';
-  if (code <= 82) return '🌦️';
-  if (code <= 99) return '⛈️';
-  return '🌡️';
+  return <AnimatedWeatherIcon code={code} />;
 };
 
 const getWindDirection = (degree: number | undefined) => {
@@ -623,14 +792,12 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
             animate={{ scale: 1, opacity: 1 }}
             className="logo-widget"
           >
-            <img
-              src={state.widgets.logo.url}
-              alt="Logo"
-              referrerPolicy="no-referrer"
-              style={{
-                maxWidth: state.widgets.logo.maxWidth || '180px',
-                opacity: state.widgets.logo.opacity ?? 1,
-              }}
+            <BrandLogo
+              logoUrl={state.widgets.logo.url}
+              maxWidth={state.widgets.logo.maxWidth || '100px'}
+              opacity={state.widgets.logo.opacity ?? 1}
+              showText={state.widgets.logoText?.enabled ?? true}
+              fontSize={state.widgets.logoText?.fontSize ?? 2.25}
             />
           </motion.div>
         )}
@@ -668,7 +835,6 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
             animate={{ y: 0, opacity: 1 }}
             className="overlay-widget clock-widget broadcast-live"
           >
-            <div className="live-badge">LIVE</div>
             <div className="time-display">
               {time.toLocaleTimeString([], {
                 hour: '2-digit',
@@ -676,6 +842,7 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
                 second: '2-digit',
               })}
             </div>
+            <div className="live-badge">LIVE</div>
           </motion.div>
         )}
       </AnimatePresence>

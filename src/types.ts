@@ -18,6 +18,10 @@ export interface OverlayState {
       maxWidth: string;
       opacity: number;
     };
+    logoText: {
+      enabled: boolean;
+      fontSize: number;
+    };
     goal: {
       enabled: boolean;
       title: string;
