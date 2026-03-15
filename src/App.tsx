@@ -33,10 +33,10 @@ import { OverlayState, SocketMessage, AlertData } from './types';
 // --- Brand Logo Component ---
 const BrandLogo = ({
   logoUrl,
-  maxWidth,
+  maxWidth = '80px',
   opacity = 1,
   showText = true,
-  fontSize = 2.25,
+  fontSize = 1.8,
 }: {
   logoUrl: string;
   maxWidth: string;
@@ -224,7 +224,7 @@ const Dashboard = ({
                     </div>
                     <div className="input-group">
                       <label>
-                        Text Size ({((state.widgets.logoText?.fontSize ?? 1.75) * 100).toFixed(0)}%)
+                        Text Size ({((state.widgets.logoText?.fontSize ?? 1.8) * 100).toFixed(0)}%)
                       </label>
                       <div className="input-wrapper no-icon">
                         <input
@@ -232,7 +232,7 @@ const Dashboard = ({
                           min="0.5"
                           max="4"
                           step="0.05"
-                          value={state.widgets.logoText?.fontSize ?? 1.75}
+                          value={state.widgets.logoText?.fontSize ?? 1.8}
                           onChange={(e) =>
                             updateWidget('logoText', {
                               fontSize: parseFloat(e.target.value),
@@ -794,10 +794,10 @@ const Overlay = ({ state, alert }: { state: OverlayState; alert: AlertData | nul
           >
             <BrandLogo
               logoUrl={state.widgets.logo.url}
-              maxWidth={state.widgets.logo.maxWidth || '100px'}
+              maxWidth={state.widgets.logo.maxWidth || '80px'}
               opacity={state.widgets.logo.opacity ?? 1}
               showText={state.widgets.logoText?.enabled ?? true}
-              fontSize={state.widgets.logoText?.fontSize ?? 2.25}
+              fontSize={state.widgets.logoText?.fontSize ?? 1.8}
             />
           </motion.div>
         )}

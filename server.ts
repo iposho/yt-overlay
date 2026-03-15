@@ -29,12 +29,12 @@ async function startServer() {
       logo: {
         enabled: true,
         url: 'https://vwqbifrslmaxymferwyr.supabase.co/storage/v1/object/public/images/1772712401766-clb9i6jetn.png',
-        maxWidth: '100px',
+        maxWidth: '80px',
         opacity: 1,
       },
       logoText: {
         enabled: true,
-        fontSize: 2.25,
+        fontSize: 1.8,
       },
       goal: {
         enabled: false,
